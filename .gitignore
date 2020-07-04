@@ -1,0 +1,4 @@
+.idea/
+data/geth/
+data/keystore/
+data/genesis.json
