@@ -1,0 +1,6 @@
+[submodule "go-ethereum"]
+	path = go-ethereum
+	url = git@github.com:quilt/go-ethereum.git
+[submodule "solidity"]
+	path = solidity
+	url = git@github.com:quilt/solidity.git
