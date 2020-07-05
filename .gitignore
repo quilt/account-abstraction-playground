@@ -1,4 +1,6 @@
-.idea/
-data/geth/
-data/keystore/
-data/genesis.json
+/.idea/
+
+/data/*
+!/data/genesis_template.json
+
+.DS_Store
