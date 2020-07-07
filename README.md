@@ -27,7 +27,7 @@ All further commands will be relative to this `account-abstraction-playground` b
 For building go-ethereum, you need the most recent version of Go. See [here](https://golang.org/doc/install) for Go install instructions.
 On macOS, you also need the Xcode Command Line Tools, which you can install via `xcode-select --install`.
 
-To compile `geth, do:
+To compile `geth`, do:
 
 ```shell
 cd go-ethereum
@@ -51,7 +51,7 @@ cmake .. && make solc
 
 You should now have a `solc` executable at `solc/solc`.
 
-If you are running into `Could NOT find Boost` issues on macOS, try `brew install boost-python`.
+If you are running into a `Could NOT find Boost` issue on macOS, try `brew install boost-python`.
 
 ## Create a Local Test Chain
 
@@ -60,7 +60,7 @@ Otherwise you can follow this simple 3-step process to set up a local Proof-of-A
 
 ### Create a Signer Account
 
-To create an account that we will use as the signer (PoA equivalent of a miner) for the testnet, do:
+To create an account that will serve as the signer (PoA equivalent of a miner) for the testnet, do:
 
 ```shell
 go-ethereum/build/bin/geth account new --datadir data
@@ -71,7 +71,7 @@ We will refer to this address (without `0x`) as `<SIGNER>`.
 
 ### Create a Genesis File
 
-Next you need to create a genesis file for the new test chain at `data/genesis.json`.
+Next you need to create a genesis file at `data/genesis.json` for the new test chain.
 You can use the existing `data/genesis_template.json`, replacing the two occurrences of `<SIGNER>` with the address of your signer.
 
 ### Initialize & Start the Chain
