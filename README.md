@@ -8,7 +8,7 @@ Note that at the current time we do not yet have a position on bringing AA to ma
 
 The following instructions are written for macOS, but should be similar for most Linux systems. Windows instructions might differ.
 
-## Build from Source
+## Step 1: Clone & Build
 
 The repo uses git submodules to bundle our forks of [go-ethereum](https://github.com/quilt/go-ethereum) and [solidity](https://github.com/quilt/solidity) with some additional resources to help with quickly spinning up a local AA testnet.
 
@@ -53,7 +53,7 @@ You should now have a `solc` executable at `solc/solc`.
 
 If you are running into a `Could NOT find Boost` issue on macOS, try `brew install boost-python`.
 
-## Create a Local Test Chain
+## Step 2: Create a Local Test Chain
 
 The next step is to set up a local geth test chain. If you are already familiar with setting up geth testnets, you can skip this section and do the setup on your own.
 Otherwise you can follow this simple 3-step process to set up a local Proof-of-Authority (PoA) testnet:
@@ -86,7 +86,7 @@ go-ethereum/build/bin/geth --unlock 0x<SIGNER> --datadir data --mine --http --ht
 After entering the signer account password, you should now see the local geth testnet running and producing new blocks every 3 seconds.
 
 
-## Deploy & Use Your First Account Abstraction Contract
+## Step 3: Deploy & Use Your First Account Abstraction Contract
 
 This repo currently contains two example AA contracts.
 Both have their own instructions for deployment and usage that you can find linked below:
