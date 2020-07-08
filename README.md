@@ -1,5 +1,10 @@
 # Account Abstraction Playground
-This repo is part of the Quilt team's R&D effort on the feasibility of bringing account abstraction (AA) to eth1.
+
+The goal of this playground repo is to get you to create your first real-world account abstraction (AA) contract in 3 simple steps.
+Account abstraction is the proposed idea of letting contracts validate and pay for their own transactions, without the involvement of EOAs (i.e. private key accounts).
+
+
+This repo is part of the Quilt team's R&D effort on the feasibility of bringing AA to eth1.
 At the core of this effort is our fork of go-ethereum that implements a basic version of AA as [outlined by Vitalik](https://ethereum-magicians.org/t/implementing-account-abstraction-as-part-of-eth1-x/4020) earlier this year.
 We are currently in the process of collecting metrics and will be writing a comprehensive overview of our work so far and our future goals once that is done.
 In the meantime, this repo aims to enable anyone interested to already explore our current AA MVP implementation.
