@@ -94,7 +94,9 @@ The second one, `Wallet`, is a more interesting smart contract wallet example th
 
 For interacting with the AA test chain we are using `nodejs` with `web3.js` version `1.2.9`.
 
-### [`Whiteboard`](contracts/Whiteboard.sol)
+### `Whiteboard`
+
+The contract file for the `Whiteboard` contract can be found at [`contracts/Whiteboard.sol`](contracts/Whiteboard.sol)
 
 #### Description
 
@@ -226,7 +228,9 @@ This concludes the demonstration of the `Whiteboard` contract.
 Feel free to play around with the contract some more - this is the Account Abstraction Playground after all - e.g. by sending a transaction with `failAfterPaygas = true`.
 For a somewhat more advanced use case, we will next look at the `Wallet` contract.
 
-### [`Wallet`](contracts/Wallet.sol)
+### `Wallet`
+
+The contract file for the `Wallet` contract can be found at [`contracts/Wallet.sol`](contracts/Wallet.sol)
 
 #### Description
 
