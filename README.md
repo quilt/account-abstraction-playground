@@ -40,6 +40,7 @@ make geth
 ```
 
 You should now have a `geth` executable at `build/bin/geth`.
+Throughout this tutorial, every reference to `geth` is to this modified executable that includes AA support.
 
 #### Build Solidity
 
@@ -72,20 +73,20 @@ go-ethereum/build/bin/geth account new --datadir data
 ```
 
 This should output the public address of the newly created account.
-We will refer to this address as `<SIGNER>`.
+We will refer to this address as `__SIGNER__`.
 
 #### Create a Genesis File
 
 Next you need to create a genesis file at `data/genesis.json` for the new test chain.
-You can use the existing `data/genesis_template.json`, replacing the two occurrences of `<SIGNER>` with the address of your signer, in both cases without the leading `0x`.
+You can use the existing `data/genesis_template.json`, replacing the two occurrences of `__SIGNER__` with the address of your signer, in both cases without the leading `0x`.
 
 #### Initialize & Start the Chain
 
-For the last step of the test chain setup, do (once again replacing `<SIGNER>`):
+For the last step of the test chain setup, do (once again replacing `__SIGNER__`):
 
 ```shell
 go-ethereum/build/bin/geth init --datadir data data/genesis.json
-go-ethereum/build/bin/geth --unlock 0x<SIGNER> --datadir data --mine --http --http.api personal,eth --allow-insecure-unlock --networkid 12345 --nodiscover
+go-ethereum/build/bin/geth --unlock 0x__SIGNER__ --datadir data --mine --http --http.api personal,eth --allow-insecure-unlock --networkid 12345 --nodiscover
 ```
 
 After entering the signer account password, you should now see the local geth testnet running and producing new blocks every 3 seconds.
@@ -153,7 +154,7 @@ To compile the `Whiteboard` contract with the forked version of solidity, do:
 solidity/build/solc/solc --bin --abi contracts/Whiteboard.sol
 ```
 
-This should output both the contract bytecode, which we will reference as `<BYTECODE>`, as well as its ABI, which we will reference as `<ABI>`.
+This should output both the contract bytecode, which we will reference as `__BYTECODE__`, as well as its ABI, which we will reference as `__ABI__`.
 
 #### Deploy Contract to Local Chain
 
@@ -161,7 +162,7 @@ To deploy the compiled contract to the local AA test chain, you first have to en
 If that is not the case, you can start geth back up via
 
 ```shell
-go-ethereum/build/bin/geth --unlock 0x<SIGNER> --datadir data --mine --http --http.api personal,eth --allow-insecure-unlock --networkid 12345 --nodiscover
+go-ethereum/build/bin/geth --unlock 0x__SIGNER__ --datadir data --mine --http --http.api personal,eth --allow-insecure-unlock --networkid 12345 --nodiscover
 ```
 
 The interaction with the chain will now happen from inside `nodejs`, where we first import `web3.js` and connect it to geth:
@@ -169,17 +170,17 @@ The interaction with the chain will now happen from inside `nodejs`, where we fi
 ```javascript
 const Web3 = require('web3');
 let web3 = new Web3('http://localhost:8545');
-let signer = '0x<SIGNER>';
+let signer = '0x__SIGNER__';
 web3.eth.getBalance(signer).then(console.log);
 ```
 
-If you replaced `<SIGNER>` with your signer address, you should now see the current balance of your signer account.
+If you replaced `__SIGNER__` with your signer address, you should now see the current balance of your signer account.
 
 You can now deploy the `Whiteboard` contract:
 
 ```javascript
-let bytecode = '0x<BYTECODE>';
-let abi = <ABI>;  // note: no quotes!
+let bytecode = '0x__BYTECODE__';
+let abi = __ABI__;  // note: no quotes!
 let Contract = new web3.eth.Contract(abi);
 let contract;
 Contract.deploy({data: bytecode}).send({from: signer, value: 10000000}).then(function(contractInstance){contract = contractInstance; console.log(contractInstance);});
@@ -258,12 +259,12 @@ The relevant function provided by the contract is `recover(bytes32 hash, bytes m
 To transfer ETH from the wallet to an external address, the contract provides `function transfer(uint256 txNonce, uint256 gasPrice, address payable to, uint256 amount, bytes calldata signature)`.
 This function takes five parameters:
 
-- `txNonce` is the nonce of the transaction as in `Whiteboard.setMessage(...)`.
-- `gasPrice` is the gas price the contract is supposed to pay for the transaction as in `Whiteboard.setMessage(...)`.
+- `txNonce` is the nonce of the transaction, analogous to `Whiteboard.setMessage(...)`.
+- `gasPrice` is the gas price the contract is supposed to pay for the transaction, analogous to `Whiteboard.setMessage(...)`.
 - `to` is the recipient address.
 - `amount` is the amount in wei to be transferred to the address.
 - `signature` is the 65-byte signature of the transaction.
-  It consists of the 32-byte `r`, 32-byte `s`, and 3-byte `v` values of the ECDSA signature over the hash of `contract._address, txNonce, gasPrice, to, amount`.
+  It consists of the 32-byte `r`, 32-byte `s`, and 1-byte `v` values of the ECDSA signature over the hash of `contract._address, txNonce, gasPrice, to, amount`.
 
 #### Compile & Deploy Contract
 
@@ -273,20 +274,22 @@ To compile the `Wallet` contract, do:
 solidity/build/solc/solc --bin --abi contracts/Wallet.sol
 ```
 
-This should output both the contract bytecode, which we will reference as `<BYTECODE>`, as well as its ABI, which we will reference as `<ABI>`.
+This should output both the contract bytecode, which we will reference as `__BYTECODE__`, as well as its ABI, which we will reference as `__ABI__`.
 
 To deploy the contract in `nodejs`, do:
 
 ```javascript
 const Web3 = require('web3');
 let web3 = new Web3('http://localhost:8545');
-let signer = '0x<SIGNER>';
-let bytecode = '0x<BYTECODE>';
-let abi = <ABI>;  // note: no quotes!
+let signer = '0x__SIGNER__';
+let bytecode = '0x__BYTECODE__';
+let abi = __ABI__;  // note: no quotes!
 let Contract = new web3.eth.Contract(abi);
 let contract;
 Contract.deploy({data: bytecode}).send({from: signer, value: 10000000}).then(function(contractInstance){contract = contractInstance; console.log(contractInstance);});
 ```
+
+If you are using the same `nodejs` session as before, be sure to omit the `let` at the beginning of each statement for already declared variables, e.g. `bytecode = ...` instead of `let bytecode = ...`
 
 #### Send Transaction
 
