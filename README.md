@@ -111,9 +111,11 @@ When you first look at the contract code, you can see a few small differences to
 - `pragma experimental AccountAbstraction;` tells the compiler to enable the experimental AA support.
 - `account contract Whiteboard {...}` signals that `Whiteboard` is an AA contract.
   The compiler therefore includes the AA bytecode prefix at the beginning of the contract bytecode.
-- `assembly { paygas(gasPrice) }` uses inline assembly and a new `paygas(...)` Yul function to call the new AA `PAYGAS` opcode with the provided gas price.
+- `assembly { paygas(gasPrice) }` uses inline assembly and a new `paygas` Yul function to call the new AA `PAYGAS` opcode with the provided gas price.
   `PAYGAS` is required in any AA contract execution (even for read-only access) and signals that the contract has decided to pay for the transaction.
-  The provided gas price is used to deduct `gas price * gas limit` as total transaction cost from the contract balance.
+  If the transaction fails before `PAYGAS`, it is thus considered invalid and cannot be included in the blockchain at all.
+  If the transaction fails after `PAYGAS`, it is still considered valid and only state changes after `PAYGAS` are reverted.
+  The gas price provided to `PAYGAS` is used to deduct `gas price * gas limit` as total transaction cost from the contract balance.
   As with normal transactions, any unused gas is then refunded at the end of the transaction.
 
 
