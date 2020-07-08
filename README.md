@@ -251,7 +251,9 @@ As signature verification happens before `PAYGAS`, the AA opcode restrictions ap
 For the MVP, these include a ban of the `DELEGATECALL` used for library interactions.
 As AA transaction verification must not rely on external state, there are concerns around library contracts changing their code via `SELFDESTRUCT`, thus potentially rendering previously valid AA transactions invalid.
 Thus, for the MVP one has to directly inherit from the `ECDSA` contract such that all of its logic gets deployed together with the rest of the `Wallet` contract.
-The relevant function provided by the `ECDSA` contract is `recover(bytes32 hash, bytes memory signature)`, which takes a message hash and a 65-byte signature and returns the address of the account that signed the message.
+In contrast to library interactions, calling into precompiles via `STATICCALL` is allowed even before `PAYGAS`.
+The `ECDSA` makes use of this by internally calling the `ecrecover` precompile for reconstruction of the signer address.
+The relevant function provided by the contract is `recover(bytes32 hash, bytes memory signature)`, which takes a message hash and a 65-byte signature and returns the address of the account that signed the message.
 
 To transfer ETH from the wallet to an external address, the contract provides `function transfer(uint256 txNonce, uint256 gasPrice, address payable to, uint256 amount, bytes calldata signature)`.
 This function takes five parameters:
