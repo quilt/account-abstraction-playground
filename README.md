@@ -96,7 +96,7 @@ For interacting with the AA test chain we are using `nodejs` with `web3.js` vers
 
 ### `Whiteboard`
 
-The contract file for the `Whiteboard` contract can be found at [`contracts/Whiteboard.sol`](contracts/Whiteboard.sol)
+The contract file for the `Whiteboard` contract can be found at [`contracts/Whiteboard.sol`](contracts/Whiteboard.sol).
 
 #### Description
 
@@ -230,20 +230,87 @@ For a somewhat more advanced use case, we will next look at the `Wallet` contrac
 
 ### `Wallet`
 
-The contract file for the `Wallet` contract can be found at [`contracts/Wallet.sol`](contracts/Wallet.sol)
+The contract file for the `Wallet` contract can be found at [`contracts/Wallet.sol`](contracts/Wallet.sol).
 
 #### Description
 
+The `Wallet` contract contains 2 variables:
 
+- `uint256 nonce` is the contract's internal replay protection analogous to the one used in the `Whiteboard` example.
+- `address owner` is the contract owner and gets set to the account that deploys the contract.
+  The owner has to sign all outgoing transfers from the wallet.
+  
+The contract inherits ECDSA signature verification logic from [`contracts/ECDSA.sol`](contracts/ECDSA.sol), which is based on the [OpenZeppelin ECDSA library](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/cryptography/ECDSA.sol).
+The only change from the OppenZeppelin original is the change from a library to a contract that the `Wallet` contract then inherits from.
+As signature verification happens before `PAYGAS`, the AA opcode restrictions apply.
+For the MVP, these include a ban of the `DELEGATECALL` used for library interactions.
+As AA transaction verification must not rely on external state, there are concerns around library contracts changing their code via `SELFDESTRUCT`, thus potentially rendering previously valid AA transactions invalid.
+Thus, for the MVP one has to directly inherit from the `ECDSA` contract such that all of its logic gets deployed together with the rest of the `Wallet` contract.
+The relevant function provided by the `ECDSA` contract is `recover(bytes32 hash, bytes memory signature)`, which takes a message hash and a 65-byte signature and returns the address of the account that signed the message.
 
-#### Compile Contract
+To transfer ETH from the wallet to an external address, the contract provides `function transfer(uint256 txNonce, uint256 gasPrice, address payable to, uint256 amount, bytes calldata signature)`.
+This function takes five parameters:
 
+- `txNonce` is the nonce of the transaction as in `Whiteboard.setMessage(...)`.
+- `gasPrice` is the gas price the contract is supposed to pay for the transaction as in `Whiteboard.setMessage(...)`.
+- `to` is the recipient address.
+- `amount` is the amount in wei to be transferred to the address.
+- `signature` is the 65-byte signature of the transaction.
+  It consists of the 32-byte `r`, 32-byte `s`, and 3-byte `v` values of the ECDSA signature over the hash of `contract._address, txNonce, gasPrice, to, amount`.
 
+#### Compile & Deploy Contract
 
-#### Deploy Contract to Local Chain
+To compile the `Wallet` contract, do:
 
+```shell
+solidity/build/solc/solc --bin --abi contracts/Wallet.sol
+```
 
+This should output both the contract bytecode, which we will reference as `<BYTECODE>`, as well as its ABI, which we will reference as `<ABI>`.
+
+To deploy the contract in `nodejs`, do:
+
+```javascript
+const Web3 = require('web3');
+let web3 = new Web3('http://localhost:8545');
+let signer = '0x<SIGNER>';
+let bytecode = '0x<BYTECODE>';
+let abi = <ABI>;  // note: no quotes!
+let Contract = new web3.eth.Contract(abi);
+let contract;
+Contract.deploy({data: bytecode}).send({from: signer, value: 10000000}).then(function(contractInstance){contract = contractInstance; console.log(contractInstance);});
+```
 
 #### Send Transaction
 
+As an example transaction, you are going to send `42 wei` to the `0x0000000000000000000000000000000000000000` address.
+Before doing so, you can inspect the current chain state via:
 
+```javascript
+let zeroAddress = '0x0000000000000000000000000000000000000000';
+contract.options.from = '0xffffffffffffffffffffffffffffffffffffffff';
+contract.methods.getNonce().call().then(console.log);
+contract.methods.getOwner().call().then(console.log);
+web3.eth.getBalance(contract._address).then(console.log);
+web3.eth.getBalance(zeroAddress).then(console.log);
+web3.eth.getBalance(signer).then(console.log);
+```
+
+As you can see, the signer account that deployed the AA contract is registered as its owner.
+To send a transfer, you thus first have to create and sign the transaction hash from the signer account:
+
+```javascript
+let hash = web3.utils.soliditySha3(contract._address, 0, 1, zeroAddress, 42);
+let txSignature;
+web3.eth.personal.sign(hash, signer).then(function(signature){txSignature = signature;});
+```
+
+You can then send the transfer as an AA transaction:
+
+```javascript
+contract.methods.transfer(0, 1, zeroAddress, 42, txSignature).send({gasPrice: "0", gasLimit: 100000}).then(console.log);
+```
+
+After a few seconds, the transaction should be included in a block.
+The contract balance should be reduced by the sum of the transaction fee and the `42 wei` sent out.
+The balance of the zero address should now be `42 wei`.
