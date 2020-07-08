@@ -12,7 +12,7 @@ The following instructions are written for macOS, but should be similar for most
 
 The repo uses git submodules to bundle our forks of [go-ethereum](https://github.com/quilt/go-ethereum) and [solidity](https://github.com/quilt/solidity) with some additional resources to help with quickly spinning up a local AA testnet.
 
-### Clone Recursively
+#### Clone Recursively
 
 To clone this repo and both submodules in one step, do:
 
@@ -22,7 +22,7 @@ git clone -b mvp-tutorials --recurse-submodules https://github.com/quilt/account
 
 All further commands will be relative to this `account-abstraction-playground` base directory.
    
-### Build Go-Ethereum
+#### Build Go-Ethereum
 
 For building go-ethereum, you need the most recent version of Go. See [here](https://golang.org/doc/install) for Go install instructions.
 On macOS, you also need the Xcode Command Line Tools, which you can install via `xcode-select --install`.
@@ -36,7 +36,7 @@ make geth
 
 You should now have a `geth` executable at `build/bin/geth`.
 
-### Build Solidity
+#### Build Solidity
 
 See the [solidity documentation](https://solidity.readthedocs.io/en/v0.6.10/installing-solidity.html#building-from-source) for building prerequisites.
 
@@ -58,7 +58,7 @@ If you are running into a `Could NOT find Boost` issue on macOS, try `brew insta
 The next step is to set up a local geth test chain. If you are already familiar with setting up geth testnets, you can skip this section and do the setup on your own.
 Otherwise you can follow this simple 3-step process to set up a local Proof-of-Authority (PoA) testnet:
 
-### Create a Signer Account
+#### Create a Signer Account
 
 To create an account that will serve as the signer (PoA equivalent of a miner) for the testnet, do:
 
@@ -69,12 +69,12 @@ go-ethereum/build/bin/geth account new --datadir data
 This should output the public address of the newly created account.
 We will refer to this address as `<SIGNER>`.
 
-### Create a Genesis File
+#### Create a Genesis File
 
 Next you need to create a genesis file at `data/genesis.json` for the new test chain.
 You can use the existing `data/genesis_template.json`, replacing the two occurrences of `<SIGNER>` with the address of your signer, in both cases without the leading `0x`.
 
-### Initialize & Start the Chain
+#### Initialize & Start the Chain
 
 For the last step of the test chain setup, do (once again replacing `<SIGNER>`):
 
@@ -95,6 +95,8 @@ The second one, `Wallet`, is a more interesting smart contract wallet example th
 For interacting with the AA test chain we are using `nodejs` with `web3.js` version `1.2.9`.
 
 ### [`Whiteboard`](contracts/Whiteboard.sol)
+
+#### Description
 
 When you first look at the contract code, you can see a few small differences to normal solidity code:
 
@@ -132,4 +134,112 @@ This function takes four parameters:
   Thus, the result is a valid, but failed transaction. If the transaction is included in a block, the contract balance will be reduced by the total transaction fee and `nonce` will be incremented by one.
   In contrast, any state changes after `PAYGAS`, in this case the message update, are reverted, resulting in an unchanged `message`.
 
+Finally, the contract also contains an empty `constructor() public payable`, which allows ETH transfer to the contract as part of its deployment.
+Given that AA contracts have to pay for their own transaction, transfering some ETH to it is required.
+While the AA prefix of the MVP implementation also allows for incoming ETH transfers to a deployed AA contract, sending ETH as part of the initial deployment makes this extra step unnecessary.
+
+#### Compile Contract
+
+To compile the `Whiteboard` contract with the forked version of solidity, do:
+
+```shell
+solidity/build/solc/solc --bin --abi contracts/Whiteboard.sol
+```
+
+This should output both the contract bytecode, which we will reference as `<BYTECODE>`, as well as its ABI, which we will reference as `<ABI>`.
+
+#### Deploy Contract to Local Chain
+
+To deploy the compiled contract to the local AA test chain, you first have to ensure geth is still running.
+If that is not the case, you can start geth back up via
+
+```shell
+go-ethereum/build/bin/geth --unlock 0x<SIGNER> --datadir data --mine --http --http.api personal,eth --allow-insecure-unlock --networkid 12345 --nodiscover
+```
+
+The interaction with the chain will now happen from inside `nodejs`, where we first import `web3.js` and connect it to geth:
+
+```javascript
+const Web3 = require('web3');
+let web3 = new Web3('http://localhost:8545');
+let signer = '0x<SIGNER>';
+web3.eth.getBalance(signer).then(console.log);
+```
+
+If you replaced `<SIGNER>` with your signer address, you should now see the current balance of your signer account.
+
+You can now deploy the `Whiteboard` contract:
+
+```javascript
+let bytecode = '0x<BYTECODE>';
+let abi = <ABI>;  // note: no quotes!
+let Contract = new web3.eth.Contract(abi);
+let contract;
+Contract.deploy({data: bytecode}).send({from: signer, value: 10000000}).then(function(contractInstance){contract = contractInstance; console.log(contractInstance);});
+```
+
+After a few seconds, the AA contract should now be deployed and referenced by the `contract` variable.
+The deployment itself was a normal Ethereum transaction, paid for by the signer account.
+As the signer is also the block producer and thus collects all transaction fees, the only balance change is the `10000000 wei` sent to the contract as part of its deployment.
+To inspect the current balances, you can do:
+
+```javascript
+web3.eth.getBalance(contract._address).then(console.log);
+web3.eth.getBalance(signer).then(console.log);
+```
+
+#### Send Your First AA Transaction
+
+Before sending the first AA transaction, you can first use the static getter functions to read the current contract state:
+
+```javascript
+contract.options.from = '0xffffffffffffffffffffffffffffffffffffffff';
+contract.methods.getNonce().call().then(console.log);
+contract.methods.getMessage().call().then(console.log);
+```
+
+This should output a currently empty `message` and a `nonce` of `0`.
+Note the first line, where the default address for contract interactions is set to the entry point address.
+This is required already for static `ethcall` interactions in order to pass the AA bytecode prefix.
+
+You can now send your first AA transaction:
+
+```javascript
+contract.methods.setMessage(0, 1, "hello world!", false).send({gasPrice: "0", gasLimit: 100000}).then(console.log);
+```
+
+After a few seconds, the transaction - your first ever AA transaction - should make its way into a block.
+To analyze the effect of this transaction, we can again inspect the relevant parts of the chain state:
+
+```javascript
+contract.methods.getNonce().call().then(console.log);
+contract.methods.getMessage().call().then(console.log);
+web3.eth.getBalance(contract._address).then(console.log);
+web3.eth.getBalance(signer).then(console.log);
+```
+
+As you should see, the transaction was successfully executed, incrementing the contract `nonce` by one and setting its `message`.
+Furthermore, the contract balance is decreased, indicating that the contract did in fact pay for the transaction on its own.
+The signer account had no part in this interaction directly (the caller address was the `0xffffffffffffffffffffffffffffffffffffffff` entry point address) and only collected the transaction fee in its role as block producer.
+
+This concludes the demonstration of the `Whiteboard` contract.
+Feel free to play around with the contract some more - this is the Account Abstraction Playground after all - e.g. by sending a transaction with `failAfterPaygas = true`.
+For a somewhat more advanced use case, we will next look at the `Wallet` contract.
+
 ### [`Wallet`](contracts/Wallet.sol)
+
+#### Description
+
+
+
+#### Compile Contract
+
+
+
+#### Deploy Contract to Local Chain
+
+
+
+#### Send Transaction
+
+
