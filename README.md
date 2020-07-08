@@ -22,7 +22,7 @@ The repo uses git submodules to bundle our forks of [go-ethereum](https://github
 To clone this repo and both submodules in one step, do:
 
 ```shell
-git clone -b mvp-tutorials --recurse-submodules https://github.com/quilt/account-abstraction-playground.git
+git clone --recurse-submodules https://github.com/quilt/account-abstraction-playground.git
 ```
 
 All further commands will be relative to this `account-abstraction-playground` base directory.
