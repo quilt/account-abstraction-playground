@@ -7,12 +7,12 @@ account contract Whiteboard {
     uint256 nonce;
     string message;
 
-    function setMessage(uint256 txNonce, uint256 gasPrice, bool failAfterPaygas, string calldata newMessage) public {
+    function setMessage(uint256 txNonce, uint256 gasPrice, string calldata newMessage, bool failAfterPaygas) public {
         require(nonce == txNonce);
         nonce = txNonce + 1;
         assembly { paygas(gasPrice) }
-        require(!failAfterPaygas);
         message = newMessage;
+        require(!failAfterPaygas);
     }
 
     function getNonce() public view returns (uint256) {
