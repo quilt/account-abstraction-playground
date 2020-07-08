@@ -89,12 +89,12 @@ After entering the signer account password, you should now see the local geth te
 ## Step 3: Deploy & Use Your First Account Abstraction Contract
 
 This repo currently contains two example AA contracts.
-The first one, [`Whiteboard`](contracts/Whiteboard.sol), is a simple hello world AA contract that lets you write to and read from a virtual whiteboard.
-The second one, [`Wallet`](contracts/Wallet.sol), is a more interesting smart contract wallet example that uses `ecrecover` to only accept transactions signed by its owner.
+The first one, `Whiteboard`, is a simple hello world AA contract that lets you write to and read from a virtual whiteboard.
+The second one, `Wallet`, is a more interesting smart contract wallet example that uses `ecrecover` to only accept transactions signed by its owner.
 
 For interacting with the AA test chain we are using `nodejs` with `web3.js` version `1.2.9`.
 
-### `Whiteboard`
+### [`Whiteboard`](contracts/Whiteboard.sol)
 
 When you first look at the contract code, you can see a few small differences to normal solidity code:
 
@@ -132,4 +132,4 @@ This function takes four parameters:
   Thus, the result is a valid, but failed transaction. If the transaction is included in a block, the contract balance will be reduced by the total transaction fee and `nonce` will be incremented by one.
   In contrast, any state changes after `PAYGAS`, in this case the message update, are reverted, resulting in an unchanged `message`.
 
-### `Wallet`
+### [`Wallet`](contracts/Wallet.sol)
