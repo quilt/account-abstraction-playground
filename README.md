@@ -110,18 +110,18 @@ When you first look at the contract code, you can see a few small differences to
 The `Whiteboard` contract itself has two variables:
 
 - `uint256 nonce` is the contract's internal replay protection mechanism and mirrors the protocol-enshrined nonce functionality.
-  While it is still an open question whether AA would use the protocol-enshrined nonce, for our MVP we have decided against it.
+  While it is still an open question whether AA would use the protocol-enshrined nonce, the MVP does not do so.
   Thus, all AA transactions have a protocol-level nonce of `0` and it is up to the contract to provide a replay protection mechanism.
 - `string message` is the "whiteboard content". It can be changed by the contract via the `setMessage(...)` function.
 
-Note that our MVP implementation does not currently support public variables, as the solidity-defined getter functions do not call `PAYGAS` and are thus not AA compliant.
+Note that the MVP implementation does not currently support public variables, as solidity-defined getter functions do not call `PAYGAS` and are thus not AA compliant.
 Instead, the contract provides `getNonce()` and `getMessage()` as getters for `nonce` and `message` respectively.
 
 To "write" a new message to the whiteboard, the contract provides `function setMessage(uint256 txNonce, uint256 gasPrice, string calldata newMessage, bool failAfterPaygas)`.
 This function takes four parameters:
 
 - `txNonce` is the nonce of the transaction. If it is not equal to the current value of `nonce`, execution aborts without ever reaching `PAYGAS`.
-  In that case the transaction would not only fail, but would be considered invalid and could not even be included in a block.
+  In that case the transaction not only fails, but is considered invalid and cannot be included in a block.
   If instead the nonce is valid, the contract then increments its internal nonce by one, making this transaction un-replayable in the future.
 - `gasPrice` is the gas price the contract is supposed to pay for the transaction.
   While under AA the contract could decide this value on its own, it here lets the caller set it.
