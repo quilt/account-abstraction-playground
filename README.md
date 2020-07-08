@@ -67,12 +67,12 @@ go-ethereum/build/bin/geth account new --datadir data
 ```
 
 This should output the public address of the newly created account.
-We will refer to this address (without `0x`) as `<SIGNER>`.
+We will refer to this address as `<SIGNER>`.
 
 ### Create a Genesis File
 
 Next you need to create a genesis file at `data/genesis.json` for the new test chain.
-You can use the existing `data/genesis_template.json`, replacing the two occurrences of `<SIGNER>` with the address of your signer.
+You can use the existing `data/genesis_template.json`, replacing the two occurrences of `<SIGNER>` with the address of your signer, in both cases without the leading `0x`.
 
 ### Initialize & Start the Chain
 
@@ -89,7 +89,47 @@ After entering the signer account password, you should now see the local geth te
 ## Step 3: Deploy & Use Your First Account Abstraction Contract
 
 This repo currently contains two example AA contracts.
-Both have their own instructions for deployment and usage that you can find linked below:
+The first one, [`Whiteboard`](contracts/Whiteboard.sol), is a simple hello world AA contract that lets you write to and read from a virtual whiteboard.
+The second one, [`Wallet`](contracts/Wallet.sol), is a more interesting smart contract wallet example that uses `ecrecover` to only accept transactions signed by its owner.
 
-- [`Whiteboard`](contracts/Whiteboard.sol) is a simple hello world AA contract that lets you write to and read from a virtual whiteboard.
-- [`Wallet`](contracts/Wallet.sol) is a more interesting smart contract wallet example that uses `ecrecover` to only accept transactions signed by its owner.
+For interacting with the AA test chain we are using `nodejs` with `web3.js` version `1.2.9`.
+
+### `Whiteboard`
+
+When you first look at the contract code, you can see a few small differences to normal solidity code:
+
+- `pragma experimental AccountAbstraction;` tells the compiler to enable the experimental AA support.
+- `account contract Whiteboard {...}` signals that `Whiteboard` is an AA contract.
+  The compiler therefore includes the AA bytecode prefix at the beginning of the contract bytecode.
+- `assembly { paygas(gasPrice) }` uses inline assembly and a new `paygas(...)` Yul function to call the new AA `PAYGAS` opcode with the provided gas price.
+  `PAYGAS` is required in any AA contract execution (even for read-only access) and signals that the contract has decided to pay for the transaction.
+  The provided gas price is used to deduct `gas price * gas limit` as total transaction cost from the contract balance.
+  As with normal transactions, any unused gas is then refunded at the end of the transaction.
+
+
+The `Whiteboard` contract itself has two variables:
+
+- `uint256 nonce` is the contract's internal replay protection mechanism and mirrors the protocol-enshrined nonce functionality.
+  While it is still an open question whether AA would use the protocol-enshrined nonce, for our MVP we have decided against it.
+  Thus, all AA transactions have a protocol-level nonce of `0` and it is up to the contract to provide a replay protection mechanism.
+- `string message` is the "whiteboard content". It can be changed by the contract via the `setMessage(...)` function.
+
+Note that our MVP implementation does not currently support public variables, as the solidity-defined getter functions do not call `PAYGAS` and are thus not AA compliant.
+Instead, the contract provides `getNonce()` and `getMessage()` as getters for `nonce` and `message` respectively.
+
+To "write" a new message to the whiteboard, the contract provides `function setMessage(uint256 txNonce, uint256 gasPrice, string calldata newMessage, bool failAfterPaygas)`.
+This function takes four parameters:
+
+- `txNonce` is the nonce of the transaction. If it is not equal to the current value of `nonce`, execution aborts without ever reaching `PAYGAS`.
+  In that case the transaction would not only fail, but would be considered invalid and could not even be included in a block.
+  If instead the nonce is valid, the contract then increments its internal nonce by one, making this transaction un-replayable in the future.
+- `gasPrice` is the gas price the contract is supposed to pay for the transaction.
+  While under AA the contract could decide this value on its own, it here lets the caller set it.
+- `newMessage` is the new message string that replaces the old `message`.
+- `failAfterPaygas` is an extra parameter for AA experimentation.
+  If set to `true`, the contract will throw.
+  As `PAYGAS` has already been called at that point, the contract has already committed to paying for the transaction.
+  Thus, the result is a valid, but failed transaction. If the transaction is included in a block, the contract balance will be reduced by the total transaction fee and `nonce` will be incremented by one.
+  In contrast, any state changes after `PAYGAS`, in this case the message update, are reverted, resulting in an unchanged `message`.
+
+### `Wallet`
