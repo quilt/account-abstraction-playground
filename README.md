@@ -1,3 +1,5 @@
+Note: Since publishing this playground, we have contined to iterate on the account abstraction specifications and have recently published a [simplified EIP](https://github.com/ethereum/EIPs/pull/2938). Our implementation as presented in this repository is not yet fully in line with this proposal. If there is interest in an updated version of the playground, we will work on bringing it back in sync with the new specs. So let us know if that is something you would want to see!
+
 # Account Abstraction Playground
 
 The goal of this playground repo is to get you to create your first real-world account abstraction (AA) contract in 3 simple steps.
